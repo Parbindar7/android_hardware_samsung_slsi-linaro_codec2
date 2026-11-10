@@ -29,7 +29,6 @@ cc_library_shared {
         "libcodec2_vndk",
         "libutils",
         "libcutils",
-        "libion",
         "libEGL",
         "libGLESv1_CM",
         "libGLESv2",

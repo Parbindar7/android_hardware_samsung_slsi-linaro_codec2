@@ -15,8 +15,6 @@
  * limitations under the License.
  */
 #include <unistd.h>
-#include <linux/ion.h>
-#include <ion/ion.h>
 #include <string>
 #include <fcntl.h>
 #include <algorithm>
@@ -30,29 +28,6 @@
 #include "ExynosLog.h"
 #define LOG_TAG "ExynosIONUtils"
 
-///////////////////////////////////////////////////////////////////////////////
-/* graphics/base/libion/ion.c */
-// #define MAX_HEAP_NAME 32
-
-/* graphics/base/libion/ion_uapi.h */
-struct ion_heap_data {
-    char name[ExynosIONUtils::MAX_HEAP_NAME];
-    __u32 type;
-    __u32 heap_id;
-    __u32 size;       /* reserved 0 */
-    __u32 heap_flags; /* reserved 1 */
-    __u32 reserved2;
-};
-
-struct ion_heap_query {
-    __u32 cnt;
-    __u32 reserved0;
-    __u64 heaps;
-    __u32 reserved1;
-    __u32 reserved2;
-};
-///////////////////////////////////////////////////////////////////////////////
-
 #define ION_EXYNOS_HEAP_NAME_SYSTEM "ion_system_heap"
 #define ION_EXYNOS_HEAP_NAME_VIDEO_STREAM "vstream_heap"  /* ion */
 #define DMA_EXYNOS_HEAP_NAME_VIDEO_STREAM_SECURE "system-secure-vstream-secure"  /* dmaheap */
@@ -60,68 +35,13 @@ struct ion_heap_query {
 #define DMA_EXYNOS_HEAP_NAME_SYSTEM_UNCACHED "system-uncached"
 
 static uint32_t getHeapMask(const char *heapName) {
-    uint32_t ret = 0;
-
     if (heapName == nullptr) {
         StaticExynosLog(Level::Error, LOG_TAG, "[%s] heap name is invalid", __FUNCTION__);
-        return ret;
+        return 0;
     }
 
-    int ionFd = ion_open();
-    if (ionFd < 0) {
-        StaticExynosLog(Level::Error, LOG_TAG, "[%s] ion_open() is failed", __FUNCTION__);
-        return ret;
-    }
-
-    if (ion_is_legacy(ionFd)) {
-        ion_close(ionFd);
-
-        if (std::string(heapName) == std::string(ION_EXYNOS_HEAP_NAME_VIDEO_STREAM)) {
-            return EXYNOS_ION_HEAP_VIDEO_STREAM_MASK;
-        }
-
-        return EXYNOS_ION_HEAP_SYSTEM_MASK;
-    }
-
-    int heapCnt = 0;
-    if ((ion_query_heap_cnt(ionFd, &heapCnt) < 0) ||
-        (heapCnt <= 0)) {
-        StaticExynosLog(Level::Error, LOG_TAG, "[%s] ion_query_heap_cnt() is failed", __FUNCTION__);
-        ion_close(ionFd);
-        return ret;
-    }
-
-    auto ionHeapData = make_shared_array<struct ion_heap_data>(heapCnt);
-    if (ionHeapData.get() == nullptr) {
-        StaticExynosLog(Level::Error, LOG_TAG, "[%s] can not alloc ionHeapData", __FUNCTION__);
-        ion_close(ionFd);
-        return ret;
-    }
-    memset(ionHeapData.get(), 0, sizeof(struct ion_heap_data) * heapCnt);
-
-    auto query = std::make_shared<struct ion_heap_query>();
-
-    memset(query.get(), 0, sizeof(struct ion_heap_query));
-    query.get()->cnt    = heapCnt;
-    query.get()->heaps  = reinterpret_cast<__u64>(ionHeapData.get());
-
-    if (ion_query_get_heaps(ionFd, heapCnt, ionHeapData.get()) < 0) {
-        StaticExynosLog(Level::Error, LOG_TAG, "[%s] ion_query_get_heaps() is failed", __FUNCTION__);
-        ion_close(ionFd);
-        return ret;
-    }
-
-    for (int i = 0; i < heapCnt; i++) {
-        auto heap = ionHeapData.get()[i];
-
-        if (strncmp(heap.name, heapName, strlen(heapName)) == 0) {
-            ret = (1 << heap.heap_id);
-            StaticExynosLog(Level::Debug, LOG_TAG, "[%s] find heap(%s) : id(%d), mask(0x%x)", __FUNCTION__, heapName, heap.heap_id, ret);
-            break;
-        }
-    }
-
-    ion_close(ionFd);
+    uint32_t ret = exynos_ion_get_heap_mask(heapName);
+    StaticExynosLog(Level::Debug, LOG_TAG, "[%s] heap(%s) : mask(0x%x)", __FUNCTION__, heapName, ret);
 
     return ret;
 }

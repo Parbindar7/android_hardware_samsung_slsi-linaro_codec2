@@ -64,7 +64,6 @@ cc_library_static {
         "libcodec2_vndk",
         "libhidlbase",
         "libstagefright_foundation_defaults",
-        "libion",
         "libion_exynos",
         "libui",
         "libexynosgraphicbuffer",
