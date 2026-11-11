@@ -59,6 +59,14 @@ private:
     ExynosBufferOrigin() = delete;
 };
 
+#ifdef GRALLOC_LEGACY_V3_HANDLE
+/* The gralloc3 attr_region (read by the vendor blobs) precedes the gralloc4 shared_metadata,
+ * which starts with ExynosVideoMeta. See private_handle_t::kAttrPrefix in gralloc4. */
+constexpr uint32_t kVideoMetaOffset = 256;
+#else
+constexpr uint32_t kVideoMetaOffset = 0;
+#endif
+
 class ExynosBufferImpl : public ExynosBuffer {
 public:
     enum class Type : int {
@@ -317,14 +325,14 @@ private:
         int32_t fd = ExynosGraphicBufferMeta::get_video_metadata_fd((buffer_handle_t)handle);
         if (fd >= 0) {
             if (usage & ExynosGraphicBufferUsage::ROIINFO) {
-                setMetadata(fd, (sizeof(ExynosVideoMeta) + sizeof(ExynosVideoROIData)));
+                setMetadata(fd, (sizeof(ExynosVideoMeta) + sizeof(ExynosVideoROIData)), false, kVideoMetaOffset);
 
                 if (mMetaData != nullptr) {
                     mMetaData->eType = (ExynosVideoInfoType)(mMetaData->eType | VIDEO_INFO_TYPE_ROI_INFO);
                     mMetaData->data.enc.pRoiData = (unsigned long long)(((char *)mMetaData) + sizeof(ExynosVideoMeta));
                 }
             } else {
-                setMetadata(fd, sizeof(ExynosVideoMeta), clear);
+                setMetadata(fd, sizeof(ExynosVideoMeta), clear, kVideoMetaOffset);
 
                 if (mMetaData != nullptr) {
                     mMetaData->data.enc.pRoiData = 0;

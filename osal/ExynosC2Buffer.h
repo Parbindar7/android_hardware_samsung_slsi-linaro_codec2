@@ -94,6 +94,7 @@ public:
         mMark = nullptr;
         mNotify = nullptr;
         mMetaData = nullptr;
+        mMetaOffset = 0;
         mMetaSize = 0;
         memset(&mAddressInfo, 0, sizeof(mAddressInfo));
         memset(&mImageInfo, 0, sizeof(mImageInfo));
@@ -104,8 +105,9 @@ public:
         unmap();
 
         if (mMetaData != nullptr) {
-            munmap(mMetaData, mMetaSize);
+            munmap((char *)mMetaData - mMetaOffset, mMetaSize);
             mMetaData = nullptr;
+            mMetaOffset = 0;
             mMetaSize = 0;
         }
 
@@ -355,13 +357,16 @@ public:
     std::shared_ptr<ExynosParams> mParams;
 
 protected:
-    void setMetadata(int fd, int32_t size, bool clear = false) {
+    /* offset : position of ExynosVideoMeta inside the attribute region of the buffer */
+    void setMetadata(int fd, int32_t size, bool clear = false, uint32_t offset = 0) {
         if (fd >= 0) {
-            mMetaData = (ExynosVideoMeta *)mmap(nullptr, size, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
-            if (mMetaData == nullptr) {
+            void *base = mmap(nullptr, offset + size, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
+            if (base == MAP_FAILED) {
                 StaticExynosLog(Level::Error, "ExynosBuffer", "[%s] map(ExynosvideoMeta) is failed", __FUNCTION__);
             } else {
-                mMetaSize = size;
+                mMetaData = (ExynosVideoMeta *)((char *)base + offset);
+                mMetaOffset = offset;
+                mMetaSize = offset + size;
 
                 if (clear) {
                     memset(mMetaData, 0, size);
@@ -386,6 +391,7 @@ protected:
     std::shared_ptr<std::function<bool(uint32_t)>> mNotify;
 
     ExynosVideoMeta *mMetaData;
+    uint32_t         mMetaOffset;
     uint32_t         mMetaSize;
 
     std::mutex          mMutex;

@@ -40,7 +40,10 @@ cc_library_static {
         "-Wall",
         "-std=gnu++1z",
         "-std=c++2a",
-    ] + select(soong_config_variable("openmax", "GPU_TYPE"), {
+    ] + select(soong_config_variable("arm_gralloc", "gralloc3_compat_handle"), {
+        true: ["-DGRALLOC_LEGACY_V3_HANDLE=1"],
+        default: [],
+    }) + select(soong_config_variable("openmax", "GPU_TYPE"), {
         "sgpu": [
             "-DHW_GPU_ALIGN=256",
             "-DYV12_ALIGN=512",
