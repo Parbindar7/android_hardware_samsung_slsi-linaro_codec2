@@ -47,10 +47,18 @@
 #define GET_INPUT_MAX_SIZE(w, h) (((w * h) <= (4096 * 2160))? MIN_INPUT_SIZE:MAX_INPUT_SIZE)
 #define LIMITED_SECURE_INPUT_SIZE (1024 * 1024 * 5 / 2)  /* 2.5MB : For projects which has small vstream heap */
 
-#define DEFAULT_DEC_MEMORY_USAGE (android::C2AndroidMemoryUsage::HW_CODEC_WRITE |\
+/* HW_CODEC_WRITE is GRALLOC_USAGE_HW_VIDEO_ENCODER. Some gralloc implementations (e.g. Exynos9820)
+ * only select a decoder-producer layout for BufferUsage::VIDEO_DECODER. */
+#ifdef DEC_USE_VIDEO_DECODER_USAGE
+#define DEC_CODEC_WRITE_USAGE (1ULL << 22)  /* BufferUsage::VIDEO_DECODER */
+#else
+#define DEC_CODEC_WRITE_USAGE android::C2AndroidMemoryUsage::HW_CODEC_WRITE
+#endif
+
+#define DEFAULT_DEC_MEMORY_USAGE (DEC_CODEC_WRITE_USAGE |\
                                   android::C2AndroidMemoryUsage::HW_TEXTURE_READ)
 
-#define DEFAULT_SECURE_DEC_MEMORY_USAGE (android::C2AndroidMemoryUsage::HW_CODEC_WRITE |\
+#define DEFAULT_SECURE_DEC_MEMORY_USAGE (DEC_CODEC_WRITE_USAGE |\
                                          android::C2AndroidMemoryUsage::HW_TEXTURE_READ |\
                                          C2MemoryUsage::WRITE_PROTECTED |\
                                          C2MemoryUsage::READ_PROTECTED)
