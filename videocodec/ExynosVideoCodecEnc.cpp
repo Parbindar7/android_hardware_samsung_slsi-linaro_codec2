@@ -365,7 +365,8 @@ ExynosVideoErrorType ExynosVideoCodecEnc::CodecEncImpl::setDefaultConfig(
     }
 
     /* GOP size is based on interval of I-frame */
-    if (std::get<ExynosVideoEncOps>(mCommonOps).Set_GopMode(mHandle, VIDEO_FRAME_I) != VIDEO_ERROR_NONE) {
+    auto gopRet = std::get<ExynosVideoEncOps>(mCommonOps).Set_GopMode(mHandle, VIDEO_FRAME_I);
+    if ((gopRet != VIDEO_ERROR_NONE) && (gopRet != VIDEO_ERROR_NOSUPPORT)) {
         ExynosLogE("[%s] Set_GopMode() is failed", __FUNCTION__);
         return VIDEO_ERROR_APIFAIL;
     }
