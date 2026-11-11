@@ -2573,6 +2573,14 @@ static ExynosVideoErrorType MFC_Encoder_StateProcessing(
 
     pOutbuf->extraInfo.specific.enc.frameType = buf->frameType;
 
+    /* Without buffer flag control the driver reports every I slice only as a key frame,
+     * with no IDR information. Treat it as IDR, otherwise no frame is marked as sync frame. */
+    if ((pCtx->videoCtx.instInfo.bVideoBufFlagCtrl != VIDEO_TRUE) &&
+        ((buf->frameType & VIDEO_FRAME_TYPE_MASK) == VIDEO_FRAME_I)) {
+        pOutbuf->extraInfo.specific.enc.frameType =
+            (buf->frameType & ~VIDEO_FRAME_TYPE_MASK) | VIDEO_FRAME_IDR;
+    }
+
     {
         int64_t sec  = (int64_t)(buf->timestamp.tv_sec * 1E6);
         int64_t usec = (int64_t)buf->timestamp.tv_usec;
