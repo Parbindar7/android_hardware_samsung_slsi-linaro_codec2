@@ -968,7 +968,10 @@ void ExynosVideoCodecEnc::updateBufferInfo(ExynosVideoBuffer &buffer, ExynosBuff
 
     buf.nID = getFrameTag(mCodecImpl);
 
-    if (buf.nID == TAG_CSD_DATA) {
+    if ((buf.nID == TAG_CSD_DATA) ||
+        (((frameType & VIDEO_FRAME_TYPE_MASK) == VIDEO_FRAME_UNKNOWN) &&
+         (buf.nDataSize[0] > 0))) {
+        buf.nID = TAG_CSD_DATA;
         buf.eDataInfo  = DataInfo::MultiData;  /* the header will be returned with I-frame */
         buf.stImageInfo.eFrameInfo = FrameInfo::CodecSpecificData;
 
