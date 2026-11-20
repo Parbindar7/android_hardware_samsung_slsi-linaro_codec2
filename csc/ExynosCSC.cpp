@@ -620,6 +620,12 @@ public:
         for (int i = 0; i < input.nPlane; i++) {
             srcBuf[i]  = input.nFD[i];
             srcSize[i] = input.nAllocLen[i];
+
+            off_t dbufSize = lseek(input.nFD[i], 0, SEEK_END);
+            lseek(input.nFD[i], 0, SEEK_SET);
+            if (dbufSize > 0 && (unsigned long)dbufSize > (unsigned long)srcSize[i])
+                srcSize[i] = (decltype(srcSize[i]))dbufSize;
+
             ExynosLogD("[%s] input : buffer[%d] fd(%d), size(%d)", __FUNCTION__, i, srcBuf[i], srcSize[i]);
         }
 
